@@ -1,0 +1,209 @@
+                                                                          MongoDB Database Configuration
+
+First, ensure you have MongoDB installed and running on your machine. You should download MongoDB.
+
+1. Setting Up MongoDB
+MongoDB will store our application data. We will need to defined the schemas and models for our application. Below the details for setting up MongoDB with Mongoose.
+
+2. Install Mongoose
+      Install Mongoose in your Node.js project:
+      npm install mongoose
+
+3. Create Mongoose Models
+models/User.js
+This model will store user information such as first name, last name, email, phone number, password, and role (buyer/seller).
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  phoneNumber: { type: String, required: true },
+  password: { type: String, required: true },
+  role: { type: String, required: true, enum: ['buyer', 'seller'] },
+});
+
+module.exports = mongoose.model('User', userSchema);
+
+
+models/Property.js
+This model will store property information such as title, description, location, number of bedrooms, number of bathrooms, rent, and a reference to the seller (user).
+
+const mongoose = require('mongoose');
+
+const propertySchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  location: { type: String, required: true },
+  bedrooms: { type: Number, required: true },
+  bathrooms: { type: Number, required: true },
+  rent: { type: Number, required: true },
+  seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+});
+
+module.exports = mongoose.model('Property', propertySchema);
+
+
+4. Database Connection
+db.js
+Create a file to handle the MongoDB connection. This file will be responsible for connecting to the MongoDB database when the server starts.
+const mongoose = require('mongoose');
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect('mongodb://localhost:27017/rentify', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useCreateIndex: true,
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;
+
+
+5. Initialize Database Connection in Server
+Modify your server.js file to include the database connection.
+
+server.js
+const express = require('express');
+const connectDB = require('./db');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const userRoutes = require('./routes/userRoutes');
+const propertyRoutes = require('./routes/propertyRoutes');
+
+const app = express();
+
+// Connect to MongoDB
+connectDB();
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/properties', propertyRoutes);
+
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+
+6. Create Controllers
+Controllers handle the business logic and interact with the models.
+
+controllers/userController.js
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+exports.register = async (req, res) => {
+  const { firstName, lastName, email, phoneNumber, password, role } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      role,
+    });
+    await user.save();
+    res.status(201).json(user);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    const token = jwt.sign({ id: user._id }, 'yourSecretKey', { expiresIn: '1h' });
+    res.status(200).json({ token });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+controllers/propertyController.js
+const Property = require('../models/Property');
+
+exports.createProperty = async (req, res) => {
+  const { title, description, location, bedrooms, bathrooms, rent, seller } = req.body;
+  try {
+    const property = new Property({
+      title,
+      description,
+      location,
+      bedrooms,
+      bathrooms,
+      rent,
+      seller,
+    });
+    await property.save();
+    res.status(201).json(property);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.getProperties = async (req, res) => {
+  try {
+    const properties = await Property.find().populate('seller');
+    res.status(200).json(properties);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+7. Create Routes
+Routes handle HTTP requests and forward them to the appropriate controller.
+
+routes/userRoutes.js
+const express = require('express');
+const { register, login } = require('../controllers/userController');
+
+const router = express.Router();
+
+router.post('/register', register);
+router.post('/login', login);
+
+module.exports = router;
+
+routes/propertyRoutes.js
+const express = require('express');
+const { createProperty, getProperties } = require('../controllers/propertyController');
+
+const router = express.Router();
+
+router.post('/', createProperty);
+router.get('/', getProperties);
+
+module.exports = router;
+
+
+Running the Application
+1. Start MongoDB if it is not already running:
+mongod
+
+2. Start the backend server:
+node server.js
+
+3. Start the frontend React application:
+npm start

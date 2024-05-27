@@ -1,0 +1,174 @@
+                                                                                         Frontend : REACT
+1. Initialize the Project
+      npx create-react-app rentify-frontend
+      cd rentify-frontend
+      npm install axios
+
+2. Create Components (src/components/Register.js, src/components/Login.js, src/components/AddProperty.js, src/components/PropertyList.js)
+
+Register.js:
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const Register = () => {
+    const [form, setForm] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        password: '',
+        role: 'buyer'
+    });
+
+    const handleChange = (e) => {
+        setForm({
+            ...form,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        axios.post('http://localhost:5000/register', form)
+            .then(response => {
+                console.log('Registered successfully!', response.data);
+            })
+            .catch(error => {
+                console.error('There was an error registering!', error);
+            });
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <div>
+                <label>First Name:</label>
+                <input type="text" name="firstName" value={form.firstName} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Last Name:</label>
+                <input type="text" name="lastName" value={form.lastName} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Email:</label>
+                <input type="email" name="email" value={form.email} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Phone Number:</label>
+                <input type="text" name="phoneNumber" value={form.phoneNumber} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" name="password" value={form.password} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Role:</label>
+                <select name="role" value={form.role} onChange={handleChange}>
+                    <option value="buyer">Buyer</option>
+                    <option value="seller">Seller</option>
+                </select>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+    );
+};
+
+export default Register;
+
+Login.js:
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const Login = ({ setToken }) => {
+    const [form, setForm] = useState({
+        email: '',
+        password: ''
+    });
+
+    const handleChange = (e) => {
+        setForm({
+            ...form,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        axios.post('http://localhost:5000/login', form)
+            .then(response => {
+                setToken(response.data.token);
+                console.log('Logged in successfully!', response.data);
+            })
+            .catch(error => {
+                console.error('There was an error logging in!', error);
+            });
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <div>
+                <label>Email:</label>
+                <input type="email" name="email" value={form.email} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" name="password" value={form.password} onChange={handleChange} />
+            </div>
+            <button type="submit">Login</button>
+        </form>
+    );
+};
+
+export default Login;
+
+AddProperty.js:
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const AddProperty = ({ token }) => {
+    const [form, setForm] = useState({
+        title: '',
+        description: '',
+        location: '',
+        bedrooms: 0,
+        bathrooms: 0,
+        rent: 0
+    });
+
+    const handleChange = (e) => {
+        setForm({
+            ...form,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        axios.post('http://localhost:5000/properties', form, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(response => {
+                console.log('Property added!', response.data);
+            })
+            .catch(error => {
+                console.error('There was an error adding the property!', error);
+            });
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <div>
+                <label>Title:</label>
+                <input type="text" name="title" value={form.title} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Description:</label>
+                <input type="text" name="description" value={form.description} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Location:</label>
+                <input type="text" name="location" value={form.location} onChange={handleChange} />
+            </div>
+            <div>
+                <label>Bedrooms:</label>
+                <input type="number" name="bedrooms"
+
